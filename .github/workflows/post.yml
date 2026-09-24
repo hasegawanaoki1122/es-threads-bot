@@ -1,0 +1,33 @@
+name: 投稿
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # 30分ごとに、予定時刻を過ぎた投稿がないか確認
+  workflow_dispatch: {}      # 手動実行ボタン
+
+concurrency:
+  group: threads-post        # 同時に2つ動いて二重投稿しないように
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 投稿
+        env:
+          THREADS_TOKEN: ${{ secrets.THREADS_TOKEN }}
+        run: python scripts/threads_bot.py post
+      - name: 投稿履歴を保存
+        if: always()
+        run: |
+          git config user.name "threads-bot"
+          git config user.email "threads-bot@users.noreply.github.com"
+          git add data/history.json || true
+          git diff --cached --quiet || (git commit -m "投稿履歴を更新" && git push)

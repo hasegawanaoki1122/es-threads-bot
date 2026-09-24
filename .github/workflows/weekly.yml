@@ -1,0 +1,38 @@
+name: 週次レポート
+
+on:
+  schedule:
+    - cron: "0 0 * * 1"      # 毎週月曜 9:00（日本時間）
+  workflow_dispatch: {}
+
+concurrency:
+  group: threads-post
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  weekly:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 数値の取得とレポート作成
+        env:
+          THREADS_TOKEN: ${{ secrets.THREADS_TOKEN }}
+        run: |
+          python scripts/threads_bot.py insights
+          python scripts/threads_bot.py report
+      - name: 保存
+        run: |
+          git config user.name "threads-bot"
+          git config user.email "threads-bot@users.noreply.github.com"
+          git add data reports
+          git diff --cached --quiet || (git commit -m "週次レポート" && git push)
+      - name: トークンの期限を延長
+        env:
+          THREADS_TOKEN: ${{ secrets.THREADS_TOKEN }}
+        run: python scripts/threads_bot.py refresh
