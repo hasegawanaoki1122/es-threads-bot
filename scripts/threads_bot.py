@@ -41,7 +41,8 @@ def now():
 
 
 def load_json(path, default):
-    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else default
+    # utf-8-sig: Windowsで保存したファイル先頭のBOMがあっても読めるように
+    return json.loads(path.read_text(encoding="utf-8-sig")) if path.exists() else default
 
 
 def save_json(path, data):
